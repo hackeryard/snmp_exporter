@@ -81,7 +81,8 @@ func listToOid(l []int) string {
 	return strings.Join(result, ".")
 }
 
-func ScrapeTarget(target string, config *config.Module) ([]gosnmp.SnmpPDU, error) {
+// ++ add func param
+func ScrapeTarget(target string, community string, config *config.Module) ([]gosnmp.SnmpPDU, error) {
 	// Set the options.
 	snmp := gosnmp.GoSNMP{}
 	snmp.MaxRepetitions = config.WalkParams.MaxRepetitions
@@ -102,6 +103,9 @@ func ScrapeTarget(target string, config *config.Module) ([]gosnmp.SnmpPDU, error
 
 	// Configure auth.
 	config.WalkParams.ConfigureSNMP(&snmp)
+
+	// ++Reload commu param
+	snmp.Community = community
 
 	// Do the actual walk.
 	err := snmp.Connect()
@@ -193,8 +197,10 @@ func buildMetricTree(metrics []*config.Metric) *MetricNode {
 	return metricTree
 }
 
+// ++ collector typedef
 type collector struct {
 	target string
+	community string
 	module *config.Module
 }
 
@@ -206,7 +212,8 @@ func (c collector) Describe(ch chan<- *prometheus.Desc) {
 // Collect implements Prometheus.Collector.
 func (c collector) Collect(ch chan<- prometheus.Metric) {
 	start := time.Now()
-	pdus, err := ScrapeTarget(c.target, c.module)
+	// ++add community; c is stored in main.go
+	pdus, err := ScrapeTarget(c.target, c.community, c.module)
 	if err != nil {
 		log.Infof("Error scraping target %s: %s", c.target, err)
 		ch <- prometheus.NewInvalidMetric(prometheus.NewDesc("snmp_error", "Error scraping target", nil, nil), err)

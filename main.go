@@ -66,6 +66,8 @@ func init() {
 }
 
 func handler(w http.ResponseWriter, r *http.Request) {
+	// ++all using commu params, no default:public
+	community := r.URL.Query().Get("commu")
 	target := r.URL.Query().Get("target")
 	if target == "" {
 		http.Error(w, "'target' parameter must be specified", 400)
@@ -88,7 +90,8 @@ func handler(w http.ResponseWriter, r *http.Request) {
 
 	start := time.Now()
 	registry := prometheus.NewRegistry()
-	collector := collector{target: target, module: module}
+	// ++add community to collector
+	collector := collector{target: target, community: community, module: module}
 	registry.MustRegister(collector)
 	// Delegate http serving to Prometheus client library, which will call collector.Collect.
 	h := promhttp.HandlerFor(registry, promhttp.HandlerOpts{})
